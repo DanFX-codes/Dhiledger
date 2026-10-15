@@ -141,7 +141,7 @@ export function LiveDashboard({ user }) {
 
   return <main className="live-workspace">
     <header className="workspace-header">
-      <a className="wordmark" href="/" aria-label="Dhiledger home"><span className="wordmark-mark" aria-hidden="true"><span /></span><span>Dhiledger</span></a>
+      <a className="wordmark" href="/" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></a>
       <div className="workspace-account">
         <span className="workspace-avatar" aria-hidden="true">{initials(user)}</span>
         <span className="workspace-email">{user.email}</span>

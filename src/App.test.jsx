@@ -19,6 +19,7 @@ describe('Dhiledger routes', () => {
   it('renders the homepage with the official tagline and clear sample labeling', () => {
     renderAt('/')
     expect(screen.getByRole('heading', { level: 1, name: /find the money you’re losing/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'Dhiledger' }).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/sample data/i).length).toBeGreaterThan(0)
   })
 

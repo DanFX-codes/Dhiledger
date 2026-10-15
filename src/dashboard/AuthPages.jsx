@@ -13,7 +13,7 @@ function AuthLoading({ label = 'Checking your sign-in…' }) {
 function AuthFrame({ title, intro, children }) {
   return <main className="auth-screen">
     <section className="auth-panel" aria-labelledby="auth-title">
-      <Link to="/" className="wordmark auth-wordmark" aria-label="Dhiledger home"><span className="wordmark-mark" aria-hidden="true"><span /></span><span>Dhiledger</span></Link>
+      <Link to="/" className="wordmark auth-wordmark" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></Link>
       <span className="eyebrow">Private workspace</span>
       <h1 id="auth-title">{title}</h1>
       <p className="auth-intro">{intro}</p>
