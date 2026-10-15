@@ -18,6 +18,7 @@ import { demoPaths, mainNav, routeRegistry } from './routes'
 import { AuthProvider } from './auth/AuthProvider'
 import { AuthCallbackPage, LoginPage, ProtectedDashboard } from './dashboard/AuthPages'
 import { formatCurrency, sampleData } from './demo/sampleData'
+import { ThemeToggle } from './components/ThemeToggle'
 import './styles.css'
 
 const statusText = { available: 'Available', prototype: 'Prototype', planned: 'Planned', hidden: 'Hidden' }
@@ -91,6 +92,7 @@ function Header() {
         {mainNav.map((path) => <Link key={path} className={location.pathname === path ? 'active' : ''} to={path}>{routeRegistry.find((route) => route.path === path)?.title}</Link>)}
         {site.demo.status === 'prototype' && <Link className={location.pathname.startsWith('/demo') ? 'active' : ''} to="/demo">Demo</Link>}
       </nav>
+      <ThemeToggle />
       <Link className="header-login" to="/login">Log in</Link>
       <ButtonLink to={site.primaryCta.path}>{site.primaryCta.label}</ButtonLink>
       <button ref={triggerRef} className="icon-button menu-trigger" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} onClick={() => setOpen((value) => !value)}><Menu size={22} /></button>

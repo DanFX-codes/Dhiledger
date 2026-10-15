@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Activity, ArrowDownRight, ArrowUpRight, LogOut, Plus, Trash2 } from 'lucide-react'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 
 const categoryOptions = ['Cloud infrastructure', 'Software subscriptions', 'Vendor services', 'Hardware', 'Other']
@@ -143,6 +144,7 @@ export function LiveDashboard({ user }) {
     <header className="workspace-header">
       <a className="wordmark" href="/" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></a>
       <div className="workspace-account">
+        <ThemeToggle />
         <span className="workspace-avatar" aria-hidden="true">{initials(user)}</span>
         <span className="workspace-email">{user.email}</span>
         <button className="workspace-icon-button" type="button" onClick={signOut} aria-label="Sign out" title="Sign out"><LogOut size={17} /></button>

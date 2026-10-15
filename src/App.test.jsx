@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { cleanup } from '@testing-library/react'
 import { describe, expect, it, afterEach } from 'vitest'
 import App from './App'
@@ -36,6 +36,14 @@ describe('Dhiledger routes', () => {
       expect(screen.getByTestId('legal-content')).toBeEmptyDOMElement()
       unmount()
     })
+  })
+
+  it('lets users switch between light and dark mode', () => {
+    renderAt('/')
+    const toggle = screen.getByRole('button', { name: /switch to dark mode/i })
+    fireEvent.click(toggle)
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    expect(screen.getByRole('button', { name: /switch to light mode/i })).toBeInTheDocument()
   })
 
   it('keeps every capability out of the available state by default', () => {

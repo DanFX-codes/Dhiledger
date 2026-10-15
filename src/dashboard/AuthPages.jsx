@@ -4,6 +4,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { env } from '../config/env'
 import { supabase } from '../lib/supabase'
+import { ThemeToggle } from '../components/ThemeToggle'
 import { LiveDashboard } from './LiveDashboard'
 
 function AuthLoading({ label = 'Checking your sign-in…' }) {
@@ -13,7 +14,10 @@ function AuthLoading({ label = 'Checking your sign-in…' }) {
 function AuthFrame({ title, intro, children }) {
   return <main className="auth-screen">
     <section className="auth-panel" aria-labelledby="auth-title">
-      <Link to="/" className="wordmark auth-wordmark" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></Link>
+      <div className="auth-header-row">
+        <Link to="/" className="wordmark auth-wordmark" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></Link>
+        <ThemeToggle />
+      </div>
       <span className="eyebrow">Private workspace</span>
       <h1 id="auth-title">{title}</h1>
       <p className="auth-intro">{intro}</p>
