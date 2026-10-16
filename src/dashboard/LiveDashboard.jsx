@@ -17,6 +17,11 @@ function money(amount, currency) {
   }
 }
 
+function formatMonthLabel(monthKey) {
+  const [year, month] = monthKey.split('-').map(Number)
+  return new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(new Date(year, month - 1, 1))
+}
+
 function currencyTotals(entries) {
   const totals = entries.reduce((current, entry) => {
     current[entry.currency] = (current[entry.currency] || 0) + Number(entry.amount)
@@ -59,9 +64,10 @@ export function LiveDashboard({ user }) {
   const [csvError, setCsvError] = useState('')
   const [csvMessage, setCsvMessage] = useState('')
   const [importing, setImporting] = useState(false)
+  const [selectedMonthKey, setSelectedMonthKey] = useState('')
   const [form, setForm] = useState({ vendor: '', category: categoryOptions[0], amount: '', currency: 'USD', transaction_date: today(), note: '' })
   const now = new Date()
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
   useEffect(() => {
     let active = true
@@ -101,6 +107,9 @@ export function LiveDashboard({ user }) {
     }
   }, [user.id])
 
+  const entryMonthKeys = useMemo(() => [...new Set(entries.map((entry) => entry.transaction_date?.slice(0, 7)).filter(Boolean))].sort(), [entries])
+  const monthKey = selectedMonthKey || entryMonthKeys.at(-1) || currentMonthKey
+  const reportMonthOptions = useMemo(() => [...new Set([...entryMonthKeys, currentMonthKey, monthKey])].sort().reverse(), [entryMonthKeys, currentMonthKey, monthKey])
   const monthEntries = useMemo(() => entries.filter((entry) => entry.transaction_date?.startsWith(monthKey)), [entries, monthKey])
   const totals = useMemo(() => currencyTotals(monthEntries), [monthEntries])
   const vendorCount = useMemo(() => new Set(monthEntries.map((entry) => entry.vendor.trim().toLowerCase())).size, [monthEntries])
@@ -166,6 +175,8 @@ export function LiveDashboard({ user }) {
 
       const importedRows = data || []
       setEntries((current) => [...importedRows, ...current].sort((left, right) => right.transaction_date.localeCompare(left.transaction_date)))
+      const importedMonth = csvRows.map((row) => row.transaction_date.slice(0, 7)).sort().at(-1)
+      if (importedMonth) setSelectedMonthKey(importedMonth)
       setCsvMessage(`Imported ${importedRows.length} ${importedRows.length === 1 ? 'expense' : 'expenses'}.`)
       setCsvRows([])
       setCsvFileName('')
@@ -236,14 +247,14 @@ export function LiveDashboard({ user }) {
       {error && <div className="workspace-error" role="alert"><strong>Could not sync your workspace.</strong><span>{error}</span><small>Check the Supabase setup and row-level security policies in the setup guide.</small></div>}
 
       <section className="workspace-metrics" aria-label="Monthly summary">
-        <article className="workspace-metric"><span>This month · spend by currency</span><strong>{totals.length ? totals.map(([currency, amount]) => money(amount, currency)).join(' · ') : 'No spend recorded'}</strong><small>Entries dated this calendar month</small></article>
-        <article className="workspace-metric"><span>Vendors this month</span><strong>{vendorCount}</strong><small>Unique vendor names</small></article>
+        <article className="workspace-metric"><span>Spend in {formatMonthLabel(monthKey)} · by currency</span><strong>{totals.length ? totals.map(([currency, amount]) => money(amount, currency)).join(' · ') : 'No spend recorded'}</strong><small>Entries dated in the selected month</small></article>
+        <article className="workspace-metric"><span>Vendors in {formatMonthLabel(monthKey)}</span><strong>{vendorCount}</strong><small>Unique vendor names</small></article>
         <article className="workspace-metric"><span>Records in workspace</span><strong>{entries.length}</strong><small>Visible only to your account</small></article>
       </section>
 
       <section className="workspace-panel csv-import-panel" aria-labelledby="csv-import-title">
         <div className="workspace-panel-heading"><div><span className="eyebrow">Bulk import</span><h2 id="csv-import-title">Upload expense CSV</h2></div><FileText size={18} /></div>
-        <p className="csv-import-description">Import up to 1,000 expenses. Vendor and amount are required; category, currency, transaction date, and note are optional. Dates use YYYY-MM-DD.</p>
+        <p className="csv-import-description">Import up to 1,000 expenses. Vendor and amount are required; category, currency, transaction date, and note are optional. Dates use YYYY-MM-DD. <a href="/sample-expenses.csv" download>Download a sample CSV</a>.</p>
         <div className="csv-import-controls">
           <label className={`csv-file-picker ${csvFileName ? 'has-file' : ''}`}>
             <input className="sr-only" type="file" accept=".csv,text/csv" aria-label="Choose expense CSV file" onChange={selectCsvFile} disabled={importing} />
@@ -266,7 +277,7 @@ export function LiveDashboard({ user }) {
       <div className="workspace-grid">
         <div className="workspace-main-column">
           <section className="workspace-panel" aria-labelledby="activity-title">
-            <div className="workspace-panel-heading"><div><span className="eyebrow">Record activity</span><h2 id="activity-title">Entries over six months</h2></div><span className="workspace-panel-note">Number of records</span></div>
+            <div className="workspace-panel-heading"><div><span className="eyebrow">Record activity</span><h2 id="activity-title">Entries in six months through {formatMonthLabel(monthKey)}</h2></div><label className="workspace-period-control">Summary month<select aria-label="Summary month" value={monthKey} onChange={(event) => setSelectedMonthKey(event.target.value)}>{reportMonthOptions.map((option) => <option key={option} value={option}>{formatMonthLabel(option)}</option>)}</select></label></div>
             <div className="activity-chart" role="img" aria-label={monthlyActivity.map((period) => `${period.label}: ${period.count} records`).join(', ')}>
               {monthlyActivity.map((period) => <div className="activity-column" key={period.key}><strong>{period.count}</strong><span className="activity-track"><i style={{ height: `${Math.max(7, (period.count / maxActivity) * 100)}%` }} /></span><small>{period.label}</small></div>)}
             </div>

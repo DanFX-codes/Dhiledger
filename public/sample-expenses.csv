@@ -1,0 +1,9 @@
+vendor,amount,currency,transaction_date,category,note
+AWS,245.80,USD,2026-01-12,Cloud infrastructure,Sample January cloud invoice
+Cloudflare,42.00,USD,2026-02-05,Cloud infrastructure,Sample February bandwidth
+GitHub,58.00,USD,2026-02-15,Software subscriptions,Sample team plan
+OpenAI,85.00,USD,2026-03-01,Software subscriptions,Sample March usage
+Google Workspace,96.00,USD,2026-04-03,Software subscriptions,Sample email and collaboration
+AWS,275.60,USD,2026-05-05,Cloud infrastructure,Sample May cloud invoice
+Cloudflare,48.00,USD,2026-05-15,Cloud infrastructure,Sample May bandwidth
+AWS,301.15,USD,2026-06-08,Cloud infrastructure,Sample June cloud invoice

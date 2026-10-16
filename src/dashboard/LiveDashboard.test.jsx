@@ -81,13 +81,13 @@ describe('CSV ledger import', () => {
   })
 
   it('previews a CSV and imports the validated rows to the ledger', async () => {
-    const imported = [{ id: 'entry-2', vendor: 'AWS', category: 'Cloud infrastructure', amount: 125.5, currency: 'USD', transaction_date: '2026-10-01', note: null, created_at: '2026-10-01T12:00:00Z' }]
+    const imported = [{ id: 'entry-2', vendor: 'AWS', category: 'Cloud infrastructure', amount: 125.5, currency: 'USD', transaction_date: '2026-03-01', note: null, created_at: '2026-03-01T12:00:00Z' }]
     const insertQuery = { insert: vi.fn(), select: vi.fn() }
     insertQuery.insert.mockReturnValue(insertQuery)
     insertQuery.select.mockResolvedValue({ data: imported, error: null })
     setup()
 
-    const file = new window.File(['vendor,amount,currency,transaction_date,category\nAWS,125.50,USD,2026-10-01,Cloud infrastructure'], 'october.csv', { type: 'text/csv' })
+    const file = new window.File(['vendor,amount,currency,transaction_date,category\nAWS,125.50,USD,2026-03-01,Cloud infrastructure'], 'march.csv', { type: 'text/csv' })
     fireEvent.change(screen.getByLabelText(/choose expense csv file/i), { target: { files: [file] } })
     expect(await screen.findByText('1 expense ready to review.')).toBeInTheDocument()
 
@@ -99,10 +99,15 @@ describe('CSV ledger import', () => {
       category: 'Cloud infrastructure',
       amount: 125.5,
       currency: 'USD',
-      transaction_date: '2026-10-01',
+      transaction_date: '2026-03-01',
       note: null,
     }]))
     expect(await screen.findByText('Imported 1 expense.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Summary month')).toHaveValue('2026-03')
+    expect(screen.getByRole('heading', { name: /entries in six months through march 2026/i })).toBeInTheDocument()
+    expect(screen.getByText('Spend in March 2026 · by currency')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: /Mar: 1 records/ })).toBeInTheDocument()
+    expect(screen.getByText('$125.50', { selector: '.workspace-metric strong' })).toBeInTheDocument()
   })
 
   it('rejects malformed amounts before any database insert', () => {
