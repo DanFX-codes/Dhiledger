@@ -1,6 +1,6 @@
 # Supabase workspace setup
 
-The private dashboard uses Supabase Auth with Google OAuth and a per-user expense ledger. It does not connect to banks, accounting systems, or vendor accounts; records are entered manually. Do not use this starter workspace for sensitive financial account details.
+The private dashboard uses Supabase Auth (email/password and configured Google/GitHub OAuth providers) and a per-user expense ledger. Expenses can be entered manually or imported from a validated CSV. It does not connect to banks, accounting systems, or vendor accounts. Do not use this starter workspace for sensitive financial account details.
 
 ## 1. Create the Supabase project
 
@@ -13,9 +13,9 @@ VITE_SUPABASE_ANON_KEY=your-public-anon-key
 
 The anon key is exposed to browsers by design. Never put a Supabase `service_role` key or Google client secret in a `VITE_` variable.
 
-## 2. Enable Google sign-in
+## 2. Enable sign-in methods
 
-In Google Cloud Console, create an OAuth client for a web application. Add the Supabase project's callback URL shown in **Supabase → Authentication → Providers → Google** to Google's authorized redirect URIs. Enter the Google client ID and secret in the Supabase Google provider settings and enable the provider.
+Enable Email in **Supabase → Authentication → Providers** for password-based accounts. To offer Google or GitHub, enable each provider in Supabase and enter its OAuth client credentials there. Configure each OAuth application to use the callback URL shown in that provider's Supabase settings. Keep OAuth client secrets out of `VITE_` variables and the repository.
 
 In **Supabase → Authentication → URL Configuration**, add the local and deployed app URLs to the redirect allow list:
 
@@ -34,4 +34,4 @@ Every row is assigned to the current auth user by default. Select, insert, and d
 
 Restart Vite after creating `.env.local`, then visit `/login`. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the deployment environment as well. The Vercel Content Security Policy already allows Supabase HTTPS and WebSocket connections.
 
-The dashboard shows the signed-in user's manually entered records and live database changes. Currency totals are kept separate; no exchange-rate conversion, financial analysis, organization sharing, CSV import, or external account connection is implemented.
+The dashboard shows the signed-in user's manually entered and CSV-imported records, plus live database changes. CSV files are parsed and validated in the browser before rows are inserted into `ledger_entries`; vendor and amount are required, supported currencies are USD, NGN, GBP, and EUR, and supplied dates use `YYYY-MM-DD`. Currency totals are kept separate; no exchange-rate conversion, external account connection, or organization sharing is implemented.

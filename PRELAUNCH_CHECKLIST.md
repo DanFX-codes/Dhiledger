@@ -23,8 +23,9 @@ This checklist is internal and should remain incomplete until the website and au
 - [ ] Confirm that forms do not invite financial account details or sensitive files.
 
 ## Authenticated workspace
-- [ ] Configure a Supabase project and Google OAuth provider; verify local and production redirect URLs.
+- [ ] Configure Supabase email/password, Google, and GitHub providers as intended; verify local and production redirect URLs.
 - [ ] Run `supabase/schema.sql` and verify row-level security prevents cross-user reads, writes and deletes.
+- [ ] Test CSV preview, validation, month alignment, and import using non-sensitive sample data.
 - [ ] Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in local and deployment environments; never expose a service-role key.
 - [ ] Verify OAuth, session expiry, sign-out, realtime updates and error states in preview/staging.
 - [ ] Confirm that manual-entry-only scope is clear and that no unsupported financial integrations are implied.
