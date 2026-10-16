@@ -1,9 +1,21 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { cleanup } from '@testing-library/react'
-import { describe, expect, it, afterEach } from 'vitest'
+import { describe, expect, it, afterEach, vi } from 'vitest'
 import App from './App'
 import { capabilities } from './config/capabilities'
 import { legalPages } from './config/content'
+
+vi.mock('./config/env', () => ({
+  env: {
+    siteUrl: '',
+    formEndpoint: '',
+    supabaseUrl: '',
+    supabaseAnonKey: '',
+    hasSiteUrl: false,
+    hasFormEndpoint: false,
+    hasSupabase: false,
+  },
+}))
 
 afterEach(() => {
   cleanup()
@@ -50,12 +62,14 @@ describe('Dhiledger routes', () => {
     expect(capabilities.every((capability) => capability.status !== 'available')).toBe(true)
   })
 
-  it('protects the dashboard and reports when Google sign-in is not configured', async () => {
-    renderAt('/dashboard/overview')
+  it('protects the dashboard when Supabase sign-in is not configured', async () => {
+    renderAt('/dashboard')
     expect(await screen.findByRole('heading', { name: /sign in to your workspace/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /continue with google/i })).toBeDisabled()
     expect(screen.getByText(/workspace sign-in is not configured yet/i)).toBeInTheDocument()
-    expect(screen.queryByRole('textbox', { name: /password/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /email address/i })).toBeDisabled()
+    expect(screen.getByLabelText(/^password$/i)).toBeDisabled()
+    expect(screen.getByRole('button', { name: /^sign in/i })).toBeDisabled()
   })
 
   it('keeps forms visibly disabled when no endpoint is configured', () => {

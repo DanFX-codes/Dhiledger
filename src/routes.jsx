@@ -31,6 +31,7 @@ const demo = [
 
 const workspace = [
   ['/login', 'Sign in', 'Sign in to your Dhiledger workspace.', 'noindex'],
+  ['/signup', 'Create account', 'Create a private Dhiledger workspace account.', 'noindex'],
   ['/auth/callback', 'Signing in', 'Completing Google sign-in.', 'noindex'],
   ['/dashboard', 'Workspace dashboard', 'Your private technology-spend workspace.', 'noindex'],
   ['/dashboard/profile', 'Profile settings', 'Edit your Dhiledger account profile.', 'noindex'],

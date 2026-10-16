@@ -16,7 +16,7 @@ import { env } from './config/env'
 import { site } from './config/site'
 import { demoPaths, mainNav, routeRegistry } from './routes'
 import { AuthProvider } from './auth/AuthProvider'
-import { AuthCallbackPage, LoginPage, ProtectedDashboard, ProtectedProfilePage } from './dashboard/AuthPages'
+import { AuthCallbackPage, LoginPage, ProtectedDashboard, ProtectedProfilePage, SignUpPage } from './dashboard/AuthPages'
 import { formatCurrency, sampleData } from './demo/sampleData'
 import { ThemeToggle } from './components/ThemeToggle'
 import './styles.css'
@@ -247,6 +247,7 @@ function AppRoutes() {
     <Route path="/faq" element={<StandardPage eyebrow="FAQ" title="Frequently asked questions" intro="Answers about what Dhiledger is, who it is for and what is planned."><Accordion items={faq} /></StandardPage>} />
     <Route path="/resources" element={<ResourcesPage />} />
     <Route path="/login" element={<><Seo title="Sign in" description="Sign in to your Dhiledger workspace." robots="noindex" /><LoginPage /></>} />
+    <Route path="/signup" element={<><Seo title="Create account" description="Create a private Dhiledger workspace account." robots="noindex" /><SignUpPage /></>} />
     <Route path="/auth/callback" element={<><Seo title="Signing in" description="Completing Google sign-in." robots="noindex" /><AuthCallbackPage /></>} />
     <Route path="/demo" element={<DemoOverview />} />
     <Route path="/demo/spending" element={<DemoSpending />} />

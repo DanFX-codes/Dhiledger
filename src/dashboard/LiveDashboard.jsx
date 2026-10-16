@@ -1,12 +1,58 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowDownRight, ArrowUpRight, LogOut, Plus, Trash2 } from 'lucide-react'
+import { parse } from 'csv-parse/browser/esm/sync'
+import { Activity, ArrowDownRight, ArrowUpRight, FileText, LogOut, Plus, Trash2, Upload } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { supabase } from '../lib/supabase'
 
 const categoryOptions = ['Cloud infrastructure', 'Software subscriptions', 'Vendor services', 'Hardware', 'Other']
 const currencyOptions = ['USD', 'NGN', 'GBP', 'EUR']
+const csvHeaderAliases = {
+  vendor: ['vendor', 'merchant', 'payee', 'supplier'],
+  amount: ['amount', 'total', 'cost'],
+  category: ['category', 'type'],
+  currency: ['currency'],
+  transaction_date: ['transaction_date', 'date'],
+  note: ['note', 'description', 'memo'],
+}
 const today = () => new Date().toISOString().slice(0, 10)
+
+export function parseLedgerCsv(contents) {
+  const records = parse(contents, { bom: true, skip_empty_lines: true, trim: true })
+  if (records.length < 2) throw new Error('Add a header row and at least one expense to the CSV file.')
+
+  const headers = records[0].map((header) => String(header).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''))
+  const indexes = Object.fromEntries(Object.entries(csvHeaderAliases).map(([field, aliases]) => [
+    field,
+    headers.findIndex((header) => aliases.includes(header)),
+  ]))
+  if (indexes.vendor < 0 || indexes.amount < 0) throw new Error('The CSV needs Vendor and Amount columns.')
+
+  return records.slice(1).map((record, index) => {
+    const line = index + 2
+    if (record.length !== headers.length) throw new Error(`Row ${line} has a different number of columns than the header.`)
+    const value = (field) => indexes[field] < 0 ? '' : String(record[indexes[field]] || '').trim()
+    const vendor = value('vendor')
+    const amountText = value('amount').replace(/[,$\s]/g, '')
+    const amount = Number(amountText)
+    const category = value('category') || 'Other'
+    const currency = (value('currency') || 'USD').toUpperCase()
+    const transactionDate = value('transaction_date') || today()
+    const note = value('note') || null
+
+    if (!vendor || vendor.length > 120) throw new Error(`Row ${line} needs a vendor name of 1 to 120 characters.`)
+    if (!amountText || !Number.isFinite(amount) || amount <= 0) throw new Error(`Row ${line} needs an amount greater than zero.`)
+    if (!category || category.length > 80) throw new Error(`Row ${line} needs a category of 1 to 80 characters.`)
+    if (!currencyOptions.includes(currency)) throw new Error(`Row ${line} has an unsupported currency. Use USD, NGN, GBP, or EUR.`)
+    const parsedDate = new Date(`${transactionDate}T00:00:00.000Z`)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(transactionDate) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== transactionDate) {
+      throw new Error(`Row ${line} needs a transaction date in YYYY-MM-DD format.`)
+    }
+    if (note && note.length > 240) throw new Error(`Row ${line} note must be 240 characters or fewer.`)
+
+    return { vendor, category, amount, currency, transaction_date: transactionDate, note }
+  })
+}
 
 function money(amount, currency) {
   try {
@@ -36,6 +82,15 @@ function initials(user) {
   return name.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 }
 
+function readCsvFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new window.FileReader()
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '')
+    reader.onerror = () => reject(reader.error || new Error('The CSV file could not be read.'))
+    reader.readAsText(file)
+  })
+}
+
 export function LiveDashboard({ user }) {
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -44,6 +99,11 @@ export function LiveDashboard({ user }) {
   const [isLive, setIsLive] = useState(false)
   const [error, setError] = useState('')
   const [formMessage, setFormMessage] = useState('')
+  const [csvFileName, setCsvFileName] = useState('')
+  const [csvRows, setCsvRows] = useState([])
+  const [csvError, setCsvError] = useState('')
+  const [csvMessage, setCsvMessage] = useState('')
+  const [importing, setImporting] = useState(false)
   const [form, setForm] = useState({ vendor: '', category: categoryOptions[0], amount: '', currency: 'USD', transaction_date: today(), note: '' })
   const now = new Date()
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -110,6 +170,57 @@ export function LiveDashboard({ user }) {
 
   const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
 
+  const selectCsvFile = async (event) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file) return
+
+    setCsvFileName(file.name)
+    setCsvRows([])
+    setCsvError('')
+    setCsvMessage('')
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setCsvError('Choose a CSV file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setCsvError('The CSV file must be 5 MB or smaller.')
+      return
+    }
+
+    try {
+      const rows = parseLedgerCsv(await readCsvFile(file))
+      if (rows.length > 1000) throw new Error('A CSV file can contain up to 1,000 expenses at a time.')
+      setCsvRows(rows)
+      setCsvMessage(`${rows.length} ${rows.length === 1 ? 'expense' : 'expenses'} ready to review.`)
+    } catch (fileError) {
+      setCsvError(fileError.message || 'The CSV file could not be read.')
+    }
+  }
+
+  const importCsv = async () => {
+    if (!csvRows.length) return
+    setImporting(true)
+    setCsvError('')
+    setCsvMessage('')
+    try {
+      const { data, error: importError } = await supabase.from('ledger_entries').insert(csvRows)
+        .select('id, vendor, category, amount, currency, transaction_date, note, created_at')
+      if (importError) throw importError
+
+      const importedRows = data || []
+      setEntries((current) => [...importedRows, ...current].sort((left, right) => right.transaction_date.localeCompare(left.transaction_date)))
+      setCsvMessage(`Imported ${importedRows.length} ${importedRows.length === 1 ? 'expense' : 'expenses'}.`)
+      setCsvRows([])
+      setCsvFileName('')
+    } catch (importError) {
+      setCsvError(ledgerSetupMessage(importError.message) || 'The CSV could not be imported. Please try again.')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   const addEntry = async (event) => {
     event.preventDefault()
     setSaving(true)
@@ -173,6 +284,28 @@ export function LiveDashboard({ user }) {
         <article className="workspace-metric"><span>This month · spend by currency</span><strong>{totals.length ? totals.map(([currency, amount]) => money(amount, currency)).join(' · ') : 'No spend recorded'}</strong><small>Entries dated this calendar month</small></article>
         <article className="workspace-metric"><span>Vendors this month</span><strong>{vendorCount}</strong><small>Unique vendor names</small></article>
         <article className="workspace-metric"><span>Records in workspace</span><strong>{entries.length}</strong><small>Visible only to your account</small></article>
+      </section>
+
+      <section className="workspace-panel csv-import-panel" aria-labelledby="csv-import-title">
+        <div className="workspace-panel-heading"><div><span className="eyebrow">Bulk import</span><h2 id="csv-import-title">Upload expense CSV</h2></div><FileText size={18} /></div>
+        <p className="csv-import-description">Import up to 1,000 expenses. Vendor and amount are required; category, currency, transaction date, and note are optional. Dates use YYYY-MM-DD.</p>
+        <div className="csv-import-controls">
+          <label className={`csv-file-picker ${csvFileName ? 'has-file' : ''}`}>
+            <input className="sr-only" type="file" accept=".csv,text/csv" aria-label="Choose expense CSV file" onChange={selectCsvFile} disabled={importing} />
+            <Upload size={19} aria-hidden="true" />
+            <span><strong>{csvFileName || 'Choose a CSV file'}</strong><small>CSV format · up to 5 MB</small></span>
+          </label>
+          {csvRows.length > 0 && <button className="button button-primary csv-import-submit" type="button" onClick={importCsv} disabled={importing}>{importing ? 'Importing…' : `Import ${csvRows.length} ${csvRows.length === 1 ? 'expense' : 'expenses'}`}<ArrowUpRight size={16} aria-hidden="true" /></button>}
+        </div>
+        {csvError && <p className="workspace-error" role="alert">{csvError}</p>}
+        {csvMessage && <p className="workspace-success" role="status">{csvMessage}</p>}
+        {csvRows.length > 0 && <div className="csv-preview">
+          <strong className="csv-preview-title">Import preview</strong>
+          <div className="workspace-table-scroll"><table className="workspace-table"><thead><tr><th>Vendor</th><th>Category</th><th>Amount</th><th>Date</th></tr></thead><tbody>
+            {csvRows.slice(0, 5).map((row, index) => <tr key={`${row.vendor}-${index}`}><td>{row.vendor}</td><td>{row.category}</td><td>{money(row.amount, row.currency)}</td><td>{row.transaction_date}</td></tr>)}
+          </tbody></table></div>
+          {csvRows.length > 5 && <small className="csv-preview-count">Showing 5 of {csvRows.length} expenses.</small>}
+        </div>}
       </section>
 
       <div className="workspace-grid">
