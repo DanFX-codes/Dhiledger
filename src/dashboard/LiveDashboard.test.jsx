@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router-dom'
-import { LiveDashboard, parseLedgerCsv } from './LiveDashboard'
+import { LiveDashboard } from './LiveDashboard'
+import { parseLedgerCsv } from './ledgerCsv'
 import { LoginPage, ProfilePage, SignUpPage } from './AuthPages'
 import { supabase } from '../lib/supabase'
 
