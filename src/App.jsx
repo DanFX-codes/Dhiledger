@@ -16,7 +16,7 @@ import { env } from './config/env'
 import { site } from './config/site'
 import { demoPaths, mainNav, routeRegistry } from './routes'
 import { AuthProvider } from './auth/AuthProvider'
-import { AuthCallbackPage, LoginPage, ProtectedDashboard } from './dashboard/AuthPages'
+import { AuthCallbackPage, LoginPage, ProtectedDashboard, ProtectedProfilePage } from './dashboard/AuthPages'
 import { formatCurrency, sampleData } from './demo/sampleData'
 import { ThemeToggle } from './components/ThemeToggle'
 import './styles.css'
@@ -260,7 +260,8 @@ function AppRoutes() {
     <Route path="/demo/settings/organization" element={<DemoSettings section="Organization" />} />
     <Route path="/demo/settings/data" element={<DemoSettings section="Data" />} />
     <Route path="/demo/settings/privacy" element={<DemoSettings section="Privacy" />} />
-    <Route path="/dashboard/*" element={<><Seo title="Workspace dashboard" description="Your private Dhiledger workspace." robots="noindex" /><ProtectedDashboard /></>} />
+    <Route path="/dashboard" element={<><Seo title="Workspace dashboard" description="Your private Dhiledger workspace." robots="noindex" /><ProtectedDashboard /></>} />
+    <Route path="/dashboard/profile" element={<><Seo title="Profile settings" description="Edit your Dhiledger account profile." robots="noindex" /><ProtectedProfilePage /></>} />
     <Route path="/settings/*" element={<ProductNotAvailable />} />
     <Route path="/legal" element={<LegalIndex />} />
     <Route path="/legal/:slug" element={<LegalPage />} />

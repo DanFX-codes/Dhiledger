@@ -7,6 +7,79 @@ import { supabase } from '../lib/supabase'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { LiveDashboard } from './LiveDashboard'
 
+export function ProfilePage() {
+  const { user, loading } = useAuth()
+  const [profileForm, setProfileForm] = useState({
+    full_name: user?.user_metadata?.full_name || '',
+    company_name: user?.user_metadata?.company_name || '',
+    locale: user?.user_metadata?.locale || '',
+  })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMessage, setProfileMessage] = useState('')
+
+  if (loading) return <AuthLoading />
+  if (!user) return <Navigate to="/login" replace />
+
+  const updateProfileForm = (event) => setProfileForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+
+  const saveProfile = async (event) => {
+    event.preventDefault()
+    setProfileSaving(true)
+    setProfileMessage('')
+
+    const nextMetadata = {
+      ...(user.user_metadata || {}),
+      full_name: profileForm.full_name.trim(),
+      company_name: profileForm.company_name.trim(),
+      locale: profileForm.locale || user.user_metadata?.locale || '',
+    }
+
+    const { data, error: updateError } = await supabase.auth.updateUser({ data: nextMetadata })
+    if (updateError) {
+      setProfileMessage(updateError.message)
+      setProfileSaving(false)
+      return
+    }
+
+    const mergedMetadata = {
+      ...(user.user_metadata || {}),
+      ...(data?.user?.user_metadata || {}),
+      full_name: nextMetadata.full_name,
+      company_name: nextMetadata.company_name,
+      locale: nextMetadata.locale,
+    }
+
+    setProfileForm({
+      full_name: mergedMetadata.full_name || '',
+      company_name: mergedMetadata.company_name || '',
+      locale: mergedMetadata.locale || '',
+    })
+    setProfileMessage('Profile saved.')
+    setProfileSaving(false)
+  }
+
+  return <main className="auth-screen"><section className="auth-panel" aria-labelledby="profile-title">
+    <div className="auth-header-row">
+      <Link to="/dashboard" className="wordmark auth-wordmark" aria-label="Back to dashboard"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></Link>
+      <ThemeToggle />
+    </div>
+    <span className="eyebrow">Account settings</span>
+    <h1 id="profile-title">Edit profile</h1>
+    <p className="auth-intro">Update the details that appear in your private workspace.</p>
+    <form className="workspace-profile-editor" onSubmit={saveProfile}>
+      <label className="workspace-field">Full name<input name="full_name" value={profileForm.full_name} onChange={updateProfileForm} /></label>
+      <label className="workspace-field">Company<input name="company_name" value={profileForm.company_name} onChange={updateProfileForm} /></label>
+      <label className="workspace-field">Locale<input name="locale" value={profileForm.locale} onChange={updateProfileForm} /></label>
+      {profileMessage && <p className={profileMessage === 'Profile saved.' ? 'workspace-success' : 'workspace-error'} role={profileMessage === 'Profile saved.' ? 'status' : 'alert'}>{profileMessage}</p>}
+      <div className="workspace-profile-actions">
+        <button className="button button-primary" type="submit" disabled={profileSaving}>{profileSaving ? 'Saving…' : 'Save profile'}</button>
+        <Link className="button button-secondary" to="/dashboard">Cancel</Link>
+      </div>
+    </form>
+    <Link className="auth-back-link" to="/dashboard">Back to dashboard</Link>
+  </section></main>
+}
+
 function AuthLoading({ label = 'Checking your sign-in…' }) {
   return <main className="auth-screen"><p role="status">{label}</p></main>
 }
@@ -77,4 +150,11 @@ export function ProtectedDashboard() {
   if (loading) return <AuthLoading />
   if (!user) return <Navigate to="/login" replace />
   return <LiveDashboard user={user} />
+}
+
+export function ProtectedProfilePage() {
+  const { user, loading } = useAuth()
+  if (loading) return <AuthLoading />
+  if (!user) return <Navigate to="/login" replace />
+  return <ProfilePage />
 }
