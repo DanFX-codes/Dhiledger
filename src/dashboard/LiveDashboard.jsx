@@ -37,6 +37,15 @@ export function LiveDashboard({ user }) {
   const [error, setError] = useState('')
   const [formMessage, setFormMessage] = useState('')
   const [form, setForm] = useState({ vendor: '', category: categoryOptions[0], amount: '', currency: 'USD', transaction_date: today(), note: '' })
+  const [profileForm, setProfileForm] = useState({
+    full_name: user.user_metadata?.full_name || '',
+    company_name: user.user_metadata?.company_name || '',
+    locale: user.user_metadata?.locale || '',
+  })
+  const [accountMetadata, setAccountMetadata] = useState(user.user_metadata || {})
+  const [isProfileEditorOpen, setIsProfileEditorOpen] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileMessage, setProfileMessage] = useState('')
   const now = new Date()
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
@@ -101,6 +110,45 @@ export function LiveDashboard({ user }) {
   const maxActivity = Math.max(1, ...monthlyActivity.map((period) => period.count))
 
   const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+  const updateProfileForm = (event) => setProfileForm((current) => ({ ...current, [event.target.name]: event.target.value }))
+
+  const saveProfile = async (event) => {
+    event.preventDefault()
+    setProfileSaving(true)
+    setProfileMessage('')
+
+    const nextMetadata = {
+      ...accountMetadata,
+      full_name: profileForm.full_name.trim(),
+      company_name: profileForm.company_name.trim(),
+      locale: profileForm.locale || accountMetadata.locale || '',
+    }
+
+    const { data, error: updateError } = await supabase.auth.updateUser({ data: nextMetadata })
+
+    if (updateError) {
+      setProfileMessage(updateError.message)
+      setProfileSaving(false)
+      return
+    }
+
+    const mergedMetadata = {
+      ...accountMetadata,
+      ...(data?.user?.user_metadata || {}),
+      full_name: nextMetadata.full_name,
+      company_name: nextMetadata.company_name,
+      locale: nextMetadata.locale,
+    }
+
+    setAccountMetadata(mergedMetadata)
+    setProfileForm({
+      full_name: mergedMetadata.full_name || '',
+      company_name: mergedMetadata.company_name || '',
+      locale: mergedMetadata.locale || '',
+    })
+    setProfileMessage('Profile saved.')
+    setProfileSaving(false)
+  }
 
   const addEntry = async (event) => {
     event.preventDefault()
@@ -145,15 +193,31 @@ export function LiveDashboard({ user }) {
       <a className="wordmark" href="/" aria-label="Dhiledger home"><img className="brand-logo" src="/IMG-20261010-WA0008.jpg" alt="Dhiledger" /></a>
       <div className="workspace-account">
         <ThemeToggle />
-        <span className="workspace-avatar" aria-hidden="true">{initials(user)}</span>
+        <span className="workspace-avatar" aria-hidden="true">{initials({ ...user, user_metadata: accountMetadata })}</span>
         <span className="workspace-email">{user.email}</span>
+        <button type="button" className="button button-secondary" onClick={() => setIsProfileEditorOpen((current) => !current)} aria-label="Edit profile">
+          Edit profile
+        </button>
         <button className="workspace-icon-button" type="button" onClick={signOut} aria-label="Sign out" title="Sign out"><LogOut size={17} /></button>
       </div>
     </header>
 
+    {isProfileEditorOpen && (
+      <form className="workspace-profile-editor" onSubmit={saveProfile}>
+        <label className="workspace-field">Full name<input name="full_name" value={profileForm.full_name} onChange={updateProfileForm} /></label>
+        <label className="workspace-field">Company<input name="company_name" value={profileForm.company_name} onChange={updateProfileForm} /></label>
+        <label className="workspace-field">Locale<input name="locale" value={profileForm.locale} onChange={updateProfileForm} /></label>
+        {profileMessage && <p className={profileMessage === 'Profile saved.' ? 'workspace-success' : 'workspace-error'} role={profileMessage === 'Profile saved.' ? 'status' : 'alert'}>{profileMessage}</p>}
+        <div className="workspace-profile-actions">
+          <button className="button button-primary" type="submit" disabled={profileSaving}>{profileSaving ? 'Saving…' : 'Save profile'}</button>
+          <button className="button button-secondary" type="button" onClick={() => setIsProfileEditorOpen(false)}>Cancel</button>
+        </div>
+      </form>
+    )}
+
     <div className="workspace-content">
       <div className="workspace-title-row">
-        <div><span className="eyebrow">Your workspace</span><h1>Spend overview</h1><p>Private expense records for {user.user_metadata?.full_name || user.email}.</p></div>
+        <div><span className="eyebrow">Your workspace</span><h1>Spend overview</h1><p>Private expense records for {accountMetadata.full_name || user.email}.</p></div>
         <span className={`realtime-status ${isLive ? 'is-connected' : ''}`}><Activity size={15} />{isLive ? 'Live updates on' : 'Connecting to live updates'}</span>
       </div>
 
